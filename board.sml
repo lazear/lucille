@@ -5,18 +5,27 @@ signature PIECES = sig
   and side = Kingside | Queenside
 
   exception Parse
-  type algebraic = {piece: piece, capture: bool, check: bool, target: int * int}
+  type algebraic = 
+    { piece: rank
+    , start: (int * int)
+    , final: (int * int) 
+    }
 
+  val parse : string -> algebraic
   val toChar : piece -> char
   val fromChar : char -> piece
 end
 
-structure Pieces :> PIECES = struct
+structure Pieces = struct
   datatype rank = Pawn | Knight | Bishop | Rook | Queen | King
   and piece = Black of rank | White of rank | Empty
   and side = Kingside | Queenside
 
-  type algebraic = {piece: piece, capture: bool, check: bool, target: int * int}
+  type algebraic = 
+    { piece: rank
+    , start: (int * int) 
+    , final: (int * int) 
+    }
 
   exception Parse
   fun toChar (Black Pawn) = #"p"
@@ -49,32 +58,29 @@ structure Pieces :> PIECES = struct
 
   fun strip (White x) = x
     | strip (Black x) = x 
+    | strip (Empty)   = raise Fail "no rank" 
 
-  fun parsePiece [] = raise Parse
-    | parsePiece (c::cs) = 
+  fun parseRank [] = raise Parse
+    | parseRank (c::cs) = 
       let val (piece, xs) = case Char.isUpper c
 	   of true => (strip (fromChar c), cs)
 	    | false => (Pawn, c::cs)
       in (piece, xs) end
   
-  fun parseCap (#"x" :: xs) = (true, xs)
-    | parseCap xs = (false, xs)
-
   fun parseTgt [] = raise Parse
     | parseTgt (c::r::xs) = 
       let val col = if Char.isAlpha c then ord c - ord #"a" else raise Parse
-	  val row = if Char.isDigit c then ord r - ord #"0" else raise Parse
-      in ((col, row), xs) handle Overflow => raise Parse end 
+	  val row = if Char.isDigit r then ord r - ord #"0" else raise Parse
+      in ((row, col), xs) end 
 
   fun parseCheck (#"+" :: xs) = (true, xs)
     | parseCheck xs = (false, xs)
   fun parse xs = 
-    let val (piece, xs) = parsePiece xs
-	val (capture, xs) = parseCap xs
-	val (tgt, xs) = parseTgt xs
-	val (check, xs) = parseCheck xs
-    in {piece=piece, capture=capture, target=tgt, check=check} end
-
+    let val (piece, xs) = parseRank xs
+	val (start, xs) = parseTgt xs
+	val (final, xs) = parseTgt xs
+    in {piece=piece, start=start, final=final} end
+  val parse = parse o explode
 end
 
 signature BOARD = sig
@@ -82,7 +88,7 @@ signature BOARD = sig
   type board
   type position
   datatype move = Standard of position * position | Castle of Pieces.side
-
+  
   exception InvalidMove
   
   val new : unit -> board
@@ -100,7 +106,7 @@ struct
 
   type board = piece Array2.array
 
-  exception InvalidMove
+  exception InvalidMove 
   
   val empty : piece list = List.tabulate (8, fn _ => Empty) 
   fun pawns color = List.tabulate (8, fn _ => color Pawn)
@@ -109,11 +115,6 @@ struct
   fun new () = Array2.fromList [back Black, pawns Black, empty, empty, empty, empty, pawns White, back White]  
 
   fun sub (board, (x, y)) = Array2.sub (board, x, y)
-  exception Parse of string
-  fun parseAlg s =
-    let val col = ord (String.sub (s, 0)) - ord #"a"
-	val row = Int.fromString (String.substring(s, 1, 1))
-    in (col, row) handle _ => raise Parse s end
 
   fun fmt x = Option.getOpt ((Char.fromString o Int.toString) x, #"0") 
   fun fold (_, 7, Empty, (mt, ps)) = (0, #"/" :: fmt (mt+1) :: ps)
@@ -128,4 +129,34 @@ struct
   val toFEN : board -> string = implode o rev o tl o #2 o fenify
  
   fun fromFEN s = raise Fail s
+
+  fun adj (row,col) = (8-row, col)
+  val parse = (fn {piece,start,final} => {piece=piece, start=adj start, final=adj final}) o parse
+
+  fun distance {piece, start, final} = 
+    let val (row, col) = start
+	val (row', col') = final
+    in (row' - row, col' - col) end 
+  
+  (* (row, col) -> en_passant -> rank *)
+  fun valid_move (r, c) ep (White Pawn) = 
+    if r > 0
+    then InvalidMove
+    else if c <> 0 andalso not ep
+    then InvalidMove
+    else true 
+    
+
+
+
+  fun move board {piece, start, final} = 
+    let val x  = sub (board, start)
+	val p  = strip x handle Fail _ => raise InvalidMove
+	val x' = sub (board, final)
+	(* handle attacking? *)
+	val _ = if x' <> Empty then () else ()
+	fun run () = 
+	  (Array2.update (board, #1 start, #2 start, Empty);
+	   Array2.update (board, #1 final, #2 final, x))
+    in if piece <> p then raise InvalidMove else run () end
 end
