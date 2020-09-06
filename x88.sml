@@ -20,6 +20,7 @@ sig
   (* convert from algebraic notation *)
   val fromAlg : string -> Word8.word 
 end
+
 structure X88 :> X88_SIG =
 struct
   local
@@ -75,4 +76,7 @@ struct
   fun diff (a, b) = 
     let val x = Word8.- (a, b) in if valid x then toRankFile x else
         toRankFile (Word8.notb x) end
+
+
+
 end

@@ -8,10 +8,14 @@ struct
   type position = Word8.word
   type board = Piece.piece vector; 
   
+  val foldli = Vector.foldli
+
   fun empty () = Vector.tabulate (0x80, fn _ => Piece.Empty)
   fun copy src = src 
   fun sub  b p = Vector.sub (b, Word8.toInt p)
   fun update b p v = Vector.update (b, Word8.toInt p, v)
+  
+  val unsafeFromInt = Word8.fromInt
   
   fun init () = 
     let open Piece 

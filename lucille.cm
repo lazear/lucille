@@ -3,6 +3,7 @@ Group is
     piece.sig
     piece.sml
     board.sig
+    fen.sml
     x88.sml
     immx88.sml
     mutx88.sml
