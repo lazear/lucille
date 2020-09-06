@@ -10,7 +10,9 @@ struct
 
   open B.Piece
   exception Invalid = B.Invalid
-  exception IllegalMove of string
+
+  exception Violation of string
+  exception IllegalMove of string * B.position * B.position
 
   datatype move = Standard of B.position * B.position | Castle of side
 
@@ -23,10 +25,11 @@ struct
   fun domove invariant b src dst = 
     let val s = B.sub b src
         val d = B.sub b dst 
-        val check = invariant (s, d)
+        val check = invariant (s, d) handle Violation s => raise IllegalMove (s, src, dst)
     in B.update (B.update b src Empty) dst s end
 
-  fun mkInvariant f reason (x: piece*piece) = if f x then x else raise IllegalMove reason 
+  fun mkInvariant f reason (x: piece*piece) = if f x then x else raise (Violation reason)
+  fun mkOr a b x = (a x handle _ => b x) 
 
   val noCaptureKing = mkInvariant (not o isRank King o #2) "Can't capture a King"
   val ckEnemies = mkInvariant (fn (s,d) => enemies s d) "Can't capture piece of same color"
@@ -36,16 +39,16 @@ struct
   (* Move a piece from src to dst
   * src must not be empty
   * dst must not have a piece *)
-  val move = domove (ckDstEmpty)
+  val move = domove (ckSrcOccup o (mkOr ckDstEmpty ckEnemies))
   (* Attack a piece *) 
-  val attack = domove (ckEnemies) 
+  val attack = domove (ckEnemies o ckSrcOccup) 
 
   fun mv b s d = 
     let val src = B.fromAlg s  
         val dst = B.fromAlg d
     in move b src dst end
   
-  fun mv' ((s,d), b) = mv b s d handle IllegalMove s => raise IllegalMove s
+  fun mv' ((s,d), b) = mv b s d
   
 (*
   fun search board = print o (fn x => (x ^ "\n")) o (String.concatWith "\n")
@@ -53,14 +56,14 @@ struct
   
   val fromFen = Parser.fromFen
 
-  fun runMoves board = (List.foldl mv' board) handle IllegalMove s => raise Fail ("Illegal Move: " ^ s)
-  val runMoves = runMoves handle IllegalMove s => raise Fail s
+  fun fmtErr (reason, src, dst) = "Illegal move! " ^ reason ^ ": " ^ B.toAlg src ^ "->" ^ B.toAlg dst
+
+  fun runMoves board s = (List.foldl mv' board) s handle IllegalMove s => raise Fail (fmtErr s)
 end
 
 structure M2 = Mailbox(ImmX88)
 
 val moves = [("e2", "e4"), ("c7", "c5"), ("g1", "f3"), ("e4", "c5")]
 
-val b = M2.runMoves (M2.Board.init ()) moves handle M2.IllegalMove s => raise Fail
-s
+(* val b = M2.runMoves (M2.Board.init ()) moves  *)
 val () = print "hello"
