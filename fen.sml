@@ -8,7 +8,7 @@ signature FEN = sig
   val toFen : Board.board -> string
 end
 
-functor Fen(B : BOARD) :> FEN = struct
+functor Fen(B : BOARD) : FEN = struct
   structure Board = B;
   structure Piece = B.Piece;
 

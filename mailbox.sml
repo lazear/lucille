@@ -6,6 +6,8 @@ infix 5 |>*)
 functor Mailbox (B : BOARD) =
 struct
   structure Board = B
+  structure Parser = Fen(B);
+
   open B.Piece
   exception Invalid = B.Invalid
   exception IllegalMove
@@ -31,6 +33,8 @@ struct
 
   fun search board = print o (fn x => (x ^ "\n")) o (String.concatWith "\n")
      o rev o (map B.toAlg) o (B.findRanks board)
+  
+  val fromFen = Parser.fromFen
 end
 
 structure M2 = Mailbox(ImmX88)

@@ -1,4 +1,4 @@
-structure MutX88 =  
+structure MutX88 :> BOARD =  
 struct
   structure Piece = Piece
   open X88
@@ -8,6 +8,9 @@ struct
   type position = Word8.word
   type board = Piece.piece Array.array; 
   
+  val foldli = Array.foldli
+  val unsafeFromInt = Word8.fromInt 
+
   fun empty () = Array.array (0x80, Piece.Empty)
   fun copy src = let val dst = empty () in Array.copy {src=src, dst=dst, di=0}; dst end
   fun sub  b p = Array.sub (b, Word8.toInt p)
