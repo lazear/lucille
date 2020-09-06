@@ -1,0 +1,10 @@
+$(SML_LIB)/basis/basis.mlb
+piece.sig
+board.sig
+
+piece.sml
+fen.sml
+x88.sml
+immx88.sml
+mutx88.sml
+mailbox.sml

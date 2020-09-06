@@ -3,14 +3,18 @@ signature FEN = sig
   structure Board : BOARD
   structure Piece : PIECE
   sharing Board.Piece = Piece
-
   val fromFen : string -> Board.board
   val toFen : Board.board -> string
 end
 
-functor Fen(B : BOARD) : FEN = struct
+functor Fen(B : BOARD) :> FEN = struct
   structure Board = B;
   structure Piece = B.Piece;
+
+  fun foldli f acc xs  = 
+    let fun loop i f acc (x::xs) = f (i, x, loop (i+1) f acc xs)
+	  | loop _ _ acc [] = acc
+    in loop 0 f acc xs end
 
   fun fmt x = Option.getOpt ((Char.fromString o Int.toString) x, #"0") 
 
@@ -20,10 +24,9 @@ functor Fen(B : BOARD) : FEN = struct
     | serialize (_, x, (y, ps)) = (0, Piece.toChar x :: fmt y ::ps)
    
   fun serialize' (i, p, (acc, acc')) = 
-    if not (B.valid (B.unsafeFromInt i)) then (acc, acc') else 
       if length acc = 7
 	then 
-	  let val (_, xs) = List.foldli serialize (0, []) (p::acc)
+	  let val (_, xs) = foldli serialize (0, []) (p::acc)
 	      val s = implode xs 
 	  in ([], ( s :: acc')) end
 	else (p::acc, acc') 
@@ -42,12 +45,10 @@ functor Fen(B : BOARD) : FEN = struct
     in map #1 chrs end
 
   fun deserialize' b = 
-    (List.foldli (fn (i, x, b) => 
-      List.foldli (fn (j, p, b ) => 
+    (foldli (fn (i, x, b) => 
+      foldli (fn (j, p, b ) => 
         (B.update b (B.rf (i,j)) p)) b x) b)
     o rev o deserialize 
   
   val fromFen = deserialize' (B.empty ()) 
 end
-
-structure F = Fen(ImmX88);

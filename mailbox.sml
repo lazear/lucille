@@ -12,6 +12,13 @@ struct
   exception Invalid = B.Invalid
   exception IllegalMove
 
+
+  fun findRanks board p = 
+    let fun loop (pos, White p', acc) = if p = p' then pos :: acc else acc
+	  | loop (pos, Black p', acc) = if p = p' then pos :: acc else acc
+	  | loop (_, _, acc) = acc
+    in B.foldli loop [] end  
+
   fun domove invariant b src dst = 
     let val s = B.sub b src
         val d = B.sub b dst 
@@ -30,9 +37,9 @@ struct
     let val src = B.fromAlg s  
         val dst = B.fromAlg d
     in move b src dst end
-
+(*
   fun search board = print o (fn x => (x ^ "\n")) o (String.concatWith "\n")
-     o rev o (map B.toAlg) o (B.findRanks board)
+     o rev o (map B.toAlg) o (findRanks board) *)
   
   val fromFen = Parser.fromFen
 end

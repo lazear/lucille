@@ -1,15 +1,21 @@
-structure MutX88 :> BOARD =  
+structure MutX88 : BOARD =  
 struct
   structure Piece = Piece
   open X88
   exception Invalid = X88.Invalid 
-  exception Iter = X88.Iter
 
   type position = Word8.word
   type board = Piece.piece Array.array; 
-  
-  val foldli = Array.foldli
-  val unsafeFromInt = Word8.fromInt 
+ 
+  (* 
+  fun foldli f = 
+    let fun inner (i, p, acc) =
+      let val w = Word8.fromInt i
+	  val v = Word8.andb (w, 0wx88) = 0wx0
+      in if v then f (w, p, acc) else acc end 
+    in Array.foldli inner end
+  *) 
+  fun foldli f acc b = X88.foldl (fn (i, acc) => f (i, Array.sub (b, Word8.toInt i), acc)) acc 
 
   fun empty () = Array.array (0x80, Piece.Empty)
   fun copy src = let val dst = empty () in Array.copy {src=src, dst=dst, di=0}; dst end
@@ -34,55 +40,5 @@ struct
           | color (6,_) = Black Pawn
           | color (7,x) = Black (rankify x)
           | color _ = Empty
-    in Array.modifyi (fn (i,_) => color (deidx i) handle Invalid => Empty) board; board end
-
-  fun findRanks board p = 
-    let fun loop ix acc =
-          let val xs = 
-              case sub board ix 
-                of Piece.White p' => if p = p' then ix :: acc else acc
-                 | Piece.Black p' => if p = p' then ix :: acc else acc
-                 | Piece.Empty => acc
-          in loop (iter ix) xs handle Iter => xs end 
-    in loop 0wx0 [] end 
-
-  fun fmt x = Option.getOpt ((Char.fromString o Int.toString) x, #"0") 
-
-  fun fold (7, Piece.Empty, (mt, ps)) = (0, fmt (mt+1) :: ps)
-    | fold (_, Piece.Empty, (mt, ps)) = (mt+1, ps)
-    | fold (_, x, (0, ps)) = (0, Piece.toChar x :: ps) 
-    | fold (_, x, (y, ps)) = (0, Piece.toChar x :: fmt y ::ps)
-   
-  fun fold' (i, p, (acc, acc')) = 
-    if not (valid (Word8.fromInt i)) then (acc, acc') else 
-      if length acc = 7
-	then 
-	  let val (_, xs) = List.foldli fold (0, []) (p::acc)
-	      val s = implode xs 
-	  in ([], ( s :: acc')) end
-	else (p::acc, acc') 
-
-  val toFen = (String.concatWith "/") o #2 o (Array.foldli fold' ([],[]))
-
-  fun unfold (ch, (row, acc)) =
-    if ch = #"/" then ([], row::acc) else  
-    if Char.isDigit ch then (List.tabulate(ord ch - ord #"0", fn _ =>Piece.Empty) @
-    row, acc) else (Piece.fromChar ch :: row, acc) 
-
-  fun unfold' s = 
-    let val tks = String.tokens (fn x => x = #"/") s
-	val chrs = map ((foldr unfold ([], [])) o explode) tks
-    in map #1 chrs end
-
-  (* Kinda complicated. Unfold splits the char list into 8 lists of 8 chars
-   * and we can think perform a nested foldr over the lists, updating the 
-   * mutable array inplace as we go. Odd-indexed lists need to be reversed 
-   * from FEN *)
-  fun doit b = 
-    (List.foldli (fn (i, x, _) => 
-      List.foldli (fn (j, p, _) => 
-        (update b (rf(i,j)) p; ())) () x) ())
-    o rev o  unfold' 
-   
-  fun fromFen s = let val b = empty () in doit b s; b end
+    in X88.foldl (fn (i, acc) => Array.update (board, Word8.toInt i, color (toRankFile i))) (); board end
 end

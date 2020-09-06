@@ -48,16 +48,17 @@ structure Piece :> PIECE  = struct
             | false => (Pawn, c::cs)
       in (piece, xs) end
   
-  fun parseTgt [] = raise Fail "no target"
-    | parseTgt (c::r::xs) = 
+   fun parseTgt (c::r::xs) = 
       let val col = if Char.isAlpha c then ord c - ord #"a" else raise Fail
       "invalid col"
           val row = if Char.isDigit r then ord r - ord #"0" else raise Fail
           "invalid row"
       in ((row, col), xs) end 
+    | parseTgt _ = raise Fail "No target"
 
   fun parseCheck (#"+" :: xs) = (true, xs)
     | parseCheck xs = (false, xs)
+
   fun parse xs = 
     let val (piece, xs) = parseRank xs
         val (start, xs) = parseTgt xs
