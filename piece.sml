@@ -41,6 +41,19 @@ structure Piece :> PIECE  = struct
     | rank (Black x) = x 
     | rank (Empty)   = raise Fail "no rank" 
 
+  fun isRank r (White x) = x = r
+    | isRank r (Black x) = x = r
+    | isRank _ Empty = false
+
+  fun enemies (White _) (White _) = false
+    | enemies (Black _) (Black _) = false
+    | enemies (White _) Empty  = false
+    | enemies (Black _) Empty  = false
+    | enemies Empty (White _) = false
+    | enemies Empty (Black _) = false
+    | enemies Empty Empty = false
+    | enemies _ _ = true
+
   fun parseRank [] = raise Fail "no rank"
     | parseRank (c::cs) = 
       let val (piece, xs) = case Char.isUpper c

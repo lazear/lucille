@@ -5,6 +5,8 @@ signature PIECE = sig
 
 
   val rank : piece -> rank 
+  val isRank : rank -> piece -> bool
+  val enemies : piece -> piece -> bool
 (*  val parse : string -> algebraic*)
   val toChar : piece -> char
   val fromChar : char -> piece
