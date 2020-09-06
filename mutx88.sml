@@ -66,19 +66,20 @@ struct
     if Char.isDigit ch then (List.tabulate(ord ch - ord #"0", fn _ =>Piece.Empty) @
     row, acc) else (Piece.fromChar ch :: row, acc) 
 
-  fun from' s = 
+  fun unfold' s = 
     let val tks = String.tokens (fn x => x = #"/") s
 	val chrs = map ((foldr unfold ([], [])) o explode) tks
-    in chrs end
+    in map #1 chrs end
+
   (* Kinda complicated. Unfold splits the char list into 8 lists of 8 chars
    * and we can think perform a nested foldr over the lists, updating the 
    * mutable array inplace as we go. Odd-indexed lists need to be reversed 
    * from FEN *)
   fun doit b = 
-    (List.foldri (fn (i, x, _) => 
-      List.foldri (fn (j, p, _) => 
-        (update b (rf(i,j)) p; ())) () (if i mod 2 = 0 then x else rev x)) ())
-    o op:: o (foldl unfold ([], [])) o explode 
+    (List.foldli (fn (i, x, _) => 
+      List.foldli (fn (j, p, _) => 
+        (update b (rf(i,j)) p; ())) () x) ())
+    o rev o  unfold' 
    
   fun fromFen s = let val b = empty () in doit b s; b end
 end
