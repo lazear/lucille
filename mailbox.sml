@@ -12,6 +12,7 @@ struct
   exception Invalid = B.Invalid
   exception IllegalMove
 
+  datatype move = Standard of B.position * B.position | Castle of side
 
   fun findRanks board p = 
     let fun loop (pos, White p', acc) = if p = p' then pos :: acc else acc
@@ -37,12 +38,20 @@ struct
     let val src = B.fromAlg s  
         val dst = B.fromAlg d
     in move b src dst end
+
+  
 (*
   fun search board = print o (fn x => (x ^ "\n")) o (String.concatWith "\n")
      o rev o (map B.toAlg) o (findRanks board) *)
   
   val fromFen = Parser.fromFen
+
+  fun runMoves board = List.foldl (fn ((s, f), b) => mv b s f) board
+
 end
 
 structure M2 = Mailbox(ImmX88)
+
+val moves = [("e2", "e4"), ("c7", "c5"), ("g1", "f3")]
+
 

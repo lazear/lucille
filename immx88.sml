@@ -11,7 +11,7 @@ struct
 
   fun empty () = Vector.tabulate (0x80, fn _ => Piece.Empty)
   fun copy src = src 
-  fun sub  b p = Vector.sub (b, Word8.toInt p)
+  fun sub b p = Vector.sub (b, Word8.toInt p)
   fun update b p v = Vector.update (b, Word8.toInt p, v)
   
   fun init () = 
@@ -31,5 +31,6 @@ struct
           | color (6,_) = Black Pawn
           | color (7,x) = Black (rankify x)
           | color _ = Empty
-    in Vector.tabulate (0x80, fn i => (color o toRankFile o position) i handle Iter => Empty) end
+	fun run w = if valid w then (color o toRankFile) w else Empty	 
+    in Vector.tabulate (0x80, run o Word8.fromInt)  end
 end
