@@ -45,31 +45,31 @@ struct
 
   fun fmt x = Option.getOpt ((Char.fromString o Int.toString) x, #"0") 
 
-  fun fold (7, Piece.Empty, (mt, ps)) = (0, #"/" :: fmt (mt+1) :: ps)
-    | fold (c, Piece.Empty, (mt, ps)) = (mt+1, ps)
-    | fold (c, x, (0, ps)) = (0, emit c x ps)
-    | fold (c, x, (y, ps)) = (0, emit c x (fmt y ::ps))
-  and emit 7 x xs = #"/" :: Piece.toChar x :: xs
-    | emit _ x xs = Piece.toChar x :: xs
-
-  fun fold' (i, p, acc) = 
-    let fun inner (_, f) = fold (f, p, acc)
-    in (inner o deidx) i handle _ => acc end 
-    
-  fun fold'' (i, p, (acc, acc')) = 
+  fun fold (7, Piece.Empty, (mt, ps)) = (0, fmt (mt+1) :: ps)
+    | fold (_, Piece.Empty, (mt, ps)) = (mt+1, ps)
+    | fold (_, x, (0, ps)) = (0, Piece.toChar x :: ps) 
+    | fold (_, x, (y, ps)) = (0, Piece.toChar x :: fmt y ::ps)
+   
+  fun fold' (i, p, (acc, acc')) = 
     if not (valid (Word8.fromInt i)) then (acc, acc') else 
-    if length acc = 7 then ([], (rev (p::acc)) :: acc')
-    else (p::acc, acc') 
+      if length acc = 7
+	then 
+	  let val (_, xs) = List.foldli fold (0, []) (p::acc)
+	      val s = implode xs 
+	  in ([], ( s :: acc')) end
+	else (p::acc, acc') 
 
-  val toFen = fn x => raise Fail "not yet"
-(*
-  val toFen =  #2 o (Array.foldli fold'' ([], [])) 
-*)
+  val toFen = (String.concatWith "/") o #2 o (Array.foldli fold' ([],[]))
+
   fun unfold (ch, (row, acc)) =
     if ch = #"/" then ([], row::acc) else  
     if Char.isDigit ch then (List.tabulate(ord ch - ord #"0", fn _ =>Piece.Empty) @
     row, acc) else (Piece.fromChar ch :: row, acc) 
- 
+
+  fun from' s = 
+    let val tks = String.tokens (fn x => x = #"/") s
+	val chrs = map ((foldr unfold ([], [])) o explode) tks
+    in chrs end
   (* Kinda complicated. Unfold splits the char list into 8 lists of 8 chars
    * and we can think perform a nested foldr over the lists, updating the 
    * mutable array inplace as we go. Odd-indexed lists need to be reversed 
