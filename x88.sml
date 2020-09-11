@@ -76,3 +76,52 @@ struct
     let val x = Word8.- (a, b) in if valid x then toRankFile x else
         toRankFile (Word8.notb x) end
 end
+
+structure X88Deltas =
+struct
+  datatype dir = N | S | W | E | NW | NE | SW | SE
+
+  val dirToOrd = 
+    fn N => 16
+     | S => ~16
+     | W => ~1
+     | E => 1
+     | NW => 15
+     | NE => 17
+     | SW => ~17
+     | SE => ~15
+
+  fun sliding dirs pos xs = 
+    let
+      val x = dirs + pos
+      val w = Word8.fromInt (x)
+    in
+      case X88.valid w
+        of true  => sliding dirs x (w::xs)
+         | false => xs
+    end
+
+  fun stepping dirs pos = List.filter X88.valid (map (fn x => Word8.fromInt
+    (pos + dirToOrd x)) dirs)
+    (*let 
+      fun loop (x, xs) = 
+        let
+          val x' = x + pos
+          val w = Word8.fromInt x'
+        in
+          case X88.valid w
+            of true  => w::xs
+             | false => xs
+        end
+    in
+      foldl loop [] dirs
+    end*)
+
+  fun knight pos = 
+    let 
+      val dirs = [0x12, 0x21, 0x1F, 0x0E, ~0x12, ~0x21, ~0x1F, ~0x0E]
+      val pos = map (fn x => Word8.fromInt (x + pos)) dirs
+    in List.filter X88.valid pos end
+
+end
+
