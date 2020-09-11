@@ -77,7 +77,19 @@ struct
         toRankFile (Word8.notb x) end
 end
 
-structure X88Deltas =
+
+signature Moves =
+sig
+  datatype dir = N | S | W | E | NW | NE | SW | SE
+
+  val sliding : dir list -> Word8.word -> Word8.word list
+  val stepping: dir list -> Word8.word -> Word8.word list
+  val knight: Word8.word -> Word8.word list
+
+  val moves : Piece.piece -> Word8.word -> bool -> Word8.word list
+end
+
+structure X88Moves :> Moves =
 struct
   datatype dir = N | S | W | E | NW | NE | SW | SE
 
@@ -91,37 +103,43 @@ struct
      | SW => ~17
      | SE => ~15
 
-  fun sliding dirs pos xs = 
-    let
-      val x = dirs + pos
-      val w = Word8.fromInt (x)
-    in
-      case X88.valid w
-        of true  => sliding dirs x (w::xs)
-         | false => xs
-    end
+  val dirToOrd = Word8.fromInt o dirToOrd
 
-  fun stepping dirs pos = List.filter X88.valid (map (fn x => Word8.fromInt
-    (pos + dirToOrd x)) dirs)
-    (*let 
-      fun loop (x, xs) = 
+  fun validate pos = (List.filter X88.valid) o (map (fn x => Word8.+ (pos, x)))
+
+  fun sliding dirs pos = 
+    let 
+      fun inner dir pos xs=
         let
-          val x' = x + pos
-          val w = Word8.fromInt x'
+          val x = Word8.+ (dir, pos)
         in
-          case X88.valid w
-            of true  => w::xs
+          case X88.valid x
+            of true  => inner dir x (x::xs)
              | false => xs
         end
-    in
-      foldl loop [] dirs
-    end*)
+    in foldl (fn (x, xs) => inner (dirToOrd x) pos xs) [] dirs end
 
-  fun knight pos = 
-    let 
-      val dirs = [0x12, 0x21, 0x1F, 0x0E, ~0x12, ~0x21, ~0x1F, ~0x0E]
-      val pos = map (fn x => Word8.fromInt (x + pos)) dirs
-    in List.filter X88.valid pos end
+  fun stepping dirs pos = validate pos (map dirToOrd dirs)
 
+  fun knight pos = validate pos (map Word8.fromInt [0x12, 0x21, 0x1F, 0x0E, ~0x12, ~0x21, ~0x1F,
+  ~0x0E])
+
+  fun pawnW pos true  = stepping [NW, N, NE] pos
+    | pawnW pos false = stepping [N] pos
+
+  fun pawnB pos true  = stepping [SW, S, SE] pos
+    | pawnB pos false = stepping [S] pos
+
+  fun moves (Piece.White Piece.Pawn) pos en = pawnW pos en
+    | moves (Piece.Black Piece.Pawn) pos en = pawnB pos en
+    | moves (Piece.Black rank) pos _ = doRank rank pos
+    | moves (Piece.White rank) pos _ = doRank rank pos
+    | moves Piece.Empty _ _ = []
+  and doRank Piece.Knight pos = knight pos
+    | doRank Piece.Bishop pos = sliding [NW,NE,SW,SE] pos
+    | doRank Piece.Rook pos = sliding [N,W,S,E] pos
+    | doRank Piece.Queen pos = sliding [N,S,W,E,NW,NE,SW,SE] pos
+    | doRank Piece.King pos = stepping [N,S,W,E,NW,NE,SW,SE] pos
+    | doRank Piece.Pawn _ = raise Fail "unreachable"
 end
 
