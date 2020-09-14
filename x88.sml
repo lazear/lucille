@@ -80,6 +80,7 @@ end
 
 signature Moves =
 sig
+  structure Piece : PIECE
   datatype dir = N | S | W | E | NW | NE | SW | SE
 
   val sliding : dir list -> Word8.word -> Word8.word list
@@ -89,8 +90,9 @@ sig
   val moves : Piece.piece -> Word8.word -> bool -> Word8.word list
 end
 
-structure X88Moves :> Moves =
+functor X88Moves(P : PIECE) :> Moves =
 struct
+  structure Piece = P
   datatype dir = N | S | W | E | NW | NE | SW | SE
 
   val dirToOrd = 
@@ -130,16 +132,32 @@ struct
   fun pawnB pos true  = stepping [SW, S, SE] pos
     | pawnB pos false = stepping [S] pos
 
-  fun moves (Piece.White Piece.Pawn) pos en = pawnW pos en
-    | moves (Piece.Black Piece.Pawn) pos en = pawnB pos en
-    | moves (Piece.Black rank) pos _ = doRank rank pos
-    | moves (Piece.White rank) pos _ = doRank rank pos
-    | moves Piece.Empty _ _ = []
-  and doRank Piece.Knight pos = knight pos
-    | doRank Piece.Bishop pos = sliding [NW,NE,SW,SE] pos
-    | doRank Piece.Rook pos = sliding [N,W,S,E] pos
-    | doRank Piece.Queen pos = sliding [N,S,W,E,NW,NE,SW,SE] pos
-    | doRank Piece.King pos = stepping [N,S,W,E,NW,NE,SW,SE] pos
-    | doRank Piece.Pawn _ = raise Fail "unreachable"
+  fun moves (P.White P.Pawn) pos en = pawnW pos en
+    | moves (P.Black P.Pawn) pos en = pawnB pos en
+    | moves (P.Black rank) pos _ = doRank rank pos
+    | moves (P.White rank) pos _ = doRank rank pos
+    | moves P.Empty _ _ = []
+  and doRank P.Knight pos = knight pos
+    | doRank P.Bishop pos = sliding [NW,NE,SW,SE] pos
+    | doRank P.Rook pos = sliding [N,W,S,E] pos
+    | doRank P.Queen pos = sliding [N,S,W,E,NW,NE,SW,SE] pos
+    | doRank P.King pos = stepping [N,S,W,E,NW,NE,SW,SE] pos
+    | doRank P.Pawn _ = raise Fail "unreachable"
 end
 
+(*
+functor MoveValidation(B: BOARD) = 
+struct
+  structure B = B;
+  structure M = Moves;
+  
+  fun mkmvs piece pos enPas =
+    let val moves = M.moves piece pos enPas
+        val isWhite = case piece of
+                           White => true
+                         | Black => false
+                         | Empty => raise Fail "cannot move Empty piece!"
+    in
+      
+
+end*)

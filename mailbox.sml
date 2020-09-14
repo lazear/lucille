@@ -28,6 +28,14 @@ struct
         val check = invariant (s, d) handle Violation s => raise IllegalMove (s, src, dst)
     in B.update (B.update b src Empty) dst s end
 
+
+  fun canMove invariant b src dst = 
+    let val s = B.sub b src
+        val d = B.sub b dst 
+        val check = (invariant (s, d); true) handle Violation s => false
+    in check end
+
+
   fun mkInvariant f reason (x: piece*piece) = if f x then x else raise (Violation reason)
   fun mkOr a b x = (a x handle _ => b x) 
 
@@ -59,6 +67,14 @@ struct
   fun fmtErr (reason, src, dst) = "Illegal move! " ^ reason ^ ": " ^ B.toAlg src ^ "->" ^ B.toAlg dst
 
   fun runMoves board s = (List.foldl mv' board) s handle IllegalMove s => raise Fail (fmtErr s)
+
+  structure Moves = X88Moves(B.Piece);
+  val psuedoLegal = canMove (mkOr ckEnemies ckDstEmpty)
+  fun generate board pos = 
+    let val piece = B.sub board pos
+        val mvs = Moves.moves piece pos false (* no enpasssant *)
+        val plegal = List.filter (fn x => psuedoLegal board pos x) mvs 
+    in plegal end
 end
 
 structure M2 = Mailbox(ImmX88)
