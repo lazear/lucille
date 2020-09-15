@@ -8,7 +8,8 @@ struct
   structure Board = B
   structure Parser = Fen(B);
 
-  open B.Piece
+  (* open B.Piece *)
+  open Piece
   exception Invalid = B.Invalid
 
   exception Violation of string
@@ -68,11 +69,11 @@ struct
 
   fun runMoves board s = (List.foldl mv' board) s handle IllegalMove s => raise Fail (fmtErr s)
 
-  structure Moves = X88Moves(B.Piece);
+  (* structure Moves = X88Moves *)
   val psuedoLegal = canMove (mkOr ckEnemies ckDstEmpty)
   fun generate board pos = 
     let val piece = B.sub board pos
-        val mvs = Moves.moves piece pos false (* no enpasssant *)
+        val mvs = B.moves piece pos false (* no enpasssant *)
         val plegal = List.filter (fn x => psuedoLegal board pos x) mvs 
     in plegal end
 end

@@ -2,6 +2,7 @@ structure MutX88 : BOARD =
 struct
   structure Piece = Piece
   open X88
+  open X88Moves
   exception Invalid = X88.Invalid 
 
   type position = Word8.word

@@ -2,7 +2,6 @@ signature BOARD =
 sig
   exception Invalid
   
-  structure Piece : PIECE  
   type board
   type position
 
@@ -35,4 +34,14 @@ sig
   val toAlg : position -> string
   (* convert from algebraic notation *)
   val fromAlg : string -> position 
+
+  (* movement *)
+  datatype dir = N | S | W | E | NW | NE | SW | SE
+
+  val sliding : dir list -> position -> position list
+  val stepping: dir list -> position -> position list
+  val knight: position -> position list
+
+  val moves : Piece.piece -> position -> bool -> position list
+
 end
